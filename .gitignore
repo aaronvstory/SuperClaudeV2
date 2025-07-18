@@ -1,0 +1,350 @@
+# Comprehensive Security .gitignore for SuperClaude V2
+
+# ============================================================================
+# CRITICAL SECURITY FILES - NEVER COMMIT THESE
+# ============================================================================
+
+# Personal Access Tokens and API Keys
+*token*
+*pat*
+*api-key*
+*api_key*
+*.key
+*.pem
+*secret*
+*credential*
+*password*
+
+# Environment Files
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Authentication Files
+auth.json
+credentials.json
+.credentials
+*auth*
+oauth*
+
+# Cloud Provider Credentials
+.aws/
+.azure/
+.gcp/
+*service-account*
+
+# ============================================================================
+# DEVELOPMENT ENVIRONMENTS
+# ============================================================================
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# ============================================================================
+# IDEs AND EDITORS
+# ============================================================================
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-*
+
+# Vim/Neovim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+
+# ============================================================================
+# OPERATING SYSTEMS
+# ============================================================================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============================================================================
+# BUILD OUTPUTS AND ARTIFACTS
+# ============================================================================
+
+# Compiled Output
+*.exe
+*.dll
+*.obj
+*.o
+*.a
+*.lib
+*.so
+*.dylib
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Package Files
+*.pkg
+*.dmg
+*.app
+
+# ============================================================================
+# LOGS AND TEMPORARY FILES
+# ============================================================================
+
+# Log Files
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime Data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary Files
+*.tmp
+*.temp
+tmp/
+temp/
+.tmp/
+
+# Cache Files
+*.cache
+.cache/
+.next/
+.nuxt/
+.vuepress/dist/
+
+# ============================================================================
+# VERSION CONTROL
+# ============================================================================
+
+# Git
+.git/
+*.orig
+*.rej
+
+# SVN
+.svn/
+
+# Mercurial
+.hg/
+
+# ============================================================================
+# DATABASES
+# ============================================================================
+
+# SQLite
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+
+# Database Dumps
+*.sql
+*.dump
+
+# ============================================================================
+# BACKUPS AND ARCHIVES
+# ============================================================================
+
+# Backup Files
+*.bak
+*.backup
+*_backup_*
+backup/
+backups/
+*.old
+
+# Archive Directories
+archive/
+archives/
+old/
+deprecated/
+
+# ============================================================================
+# SUPERCLAUDE V2 SPECIFIC
+# ============================================================================
+
+# User Configurations (contain sensitive data)
+config/credentials.json
+config/.credentials.json
+05-configurations/credentials.json
+05-configurations/.credentials.json
+
+# Local GitHub PAT files
+tools/*pat*
+tools/*token*
+tools/*credential*
+04-tools/*pat*
+04-tools/*token*
+04-tools/*credential*
+
+# Local MCP configurations with secrets
+*claude_desktop_config.json
+*mcp-server-config.json
+
+# Installation Logs
+installation.log
+install.log
+setup.log
+
+# User-specific Configurations
+user-config.json
+local-settings.json
+personal-*.json
+
+# Test Files with Secrets
+test-config.json
+test-credentials.json
+
+# ============================================================================
+# SECURITY SCAN EXCEPTIONS
+# ============================================================================
+
+# GitHub will scan for these patterns - make sure they're in .gitignore
+github_pat_*
+ghp_*
+gho_*
+ghu_*
+ghr_*
+ghs_*
+
+# Other common token patterns
+sk-*
+pk-*
+bearer-*
+Basic-*
+
+# ============================================================================
+# PROJECT SPECIFIC EXCLUSIONS
+# ============================================================================
+
+# Large Binary Files
+*.iso
+*.vmdk
+*.vdi
+*.qcow2
+
+# Development Databases
+*.dev.db
+*.test.db
+*.local.db
+
+# Generated Documentation
+docs/generated/
+documentation/generated/
+
+# Test Coverage Reports
+coverage/
+*.lcov
+.nyc_output
+
+# Performance Test Results
+benchmark-results/
+performance-reports/
+
+# ============================================================================
+# ALLOW PATTERNS (These files ARE included)
+# ============================================================================
+
+# Template Files (safe to commit)
+!*.template
+!*.example
+!config.template.json
+!credentials.template.json
+!.env.template
+!.env.example
+
+# Documentation
+!README.md
+!*.md
+!docs/
+
+# Configuration Templates
+!*template*
+!*example*
+
+# ============================================================================
+# END OF SECURITY .GITIGNORE
+# ============================================================================
+
+# This .gitignore is designed to prevent accidental commit of sensitive data
+# Always review files before committing to ensure no secrets are included
+# Use 'git status' and 'git diff --cached' before 'git commit'

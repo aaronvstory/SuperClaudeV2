@@ -1,0 +1,14 @@
+﻿{
+    "git":  {
+                "wrapper":  "C:\\claude\\superclaude-tools\\git-ultimate-wrapper.bat",
+                "environment":  {
+                                    "GIT_TERMINAL_PROMPT":  "0",
+                                    "GIT_TEMPLATE_DIR":  "C:\\Program Files\\Git\\share\\git-core\\templates",
+                                    "GIT_EXEC_PATH":  "C:\\Program Files\\Git\\mingw64\\libexec\\git-core",
+                                    "GIT_SSL_NO_VERIFY":  "false",
+                                    "GIT_CURL_VERBOSE":  "0"
+                                },
+                "credential_helper":  "manager-core",
+                "executable":  "C:\\Program Files\\Git\\cmd\\git.exe"
+            }
+}

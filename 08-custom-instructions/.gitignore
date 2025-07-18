@@ -1,0 +1,41 @@
+# .gitignore for Custom Instructions Project
+
+# Security - Never commit sensitive data
+*token*
+*pat*
+*secret*
+*key*
+.env
+.env.local
+.env.production
+config/secrets.*
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Node modules (if any JS tools)
+node_modules/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
