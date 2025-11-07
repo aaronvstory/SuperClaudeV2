@@ -1,0 +1,203 @@
+name: Codex Autofix CI Failures
+
+on:
+  workflow_run:
+    # Trigger when your main CI workflow fails
+    # Replace 'CI' with your actual CI workflow name(s)
+    workflows: ["CI", "Tests", "Build"]
+    types: [completed]
+    branches:
+      - main
+      - master
+      - develop
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  autofix:
+    # Only run if the workflow failed and it's not already an autofix branch
+    if: |
+      github.event.workflow_run.conclusion == 'failure' &&
+      !startsWith(github.event.workflow_run.head_branch, 'codex/autofix-')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout failed commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Setup Python (if needed for your tests)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Setup Node.js (if needed for your tests)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Get failed workflow logs
+        id: logs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runId = context.payload.workflow_run.id;
+            const jobs = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId
+            });
+
+            const failedJobs = jobs.data.jobs.filter(job => job.conclusion === 'failure');
+            const logSummary = failedJobs.map(job => `Job: ${job.name}\nStatus: ${job.conclusion}\nSteps:\n${job.steps.filter(s => s.conclusion === 'failure').map(s => `  - ${s.name}: ${s.conclusion}`).join('\n')}`).join('\n\n');
+
+            core.setOutput('failed_jobs', logSummary);
+            return logSummary;
+
+      - name: Run Codex Autofix
+        id: autofix
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          sandbox: workspace-write  # Allows code changes but not system access
+          safety-strategy: drop-sudo
+          output-file: codex-autofix-output.md
+          codex-args: '["--max-iterations", "10"]'
+          prompt: |
+            **CI Failure Detected**
+
+            Workflow: ${{ github.event.workflow_run.name }}
+            Branch: ${{ github.event.workflow_run.head_branch }}
+            Commit: ${{ github.event.workflow_run.head_sha }}
+            Run ID: ${{ github.event.workflow_run.id }}
+
+            **Failed Jobs Summary:**
+            ```
+            ${{ steps.logs.outputs.failed_jobs }}
+            ```
+
+            **Your Task:**
+            1. Investigate why the CI workflow failed
+            2. Run the failing tests/builds locally to reproduce
+            3. Implement the MINIMAL fix needed to make all tests pass
+            4. **IMPORTANT**: Do NOT refactor unrelated code
+            5. Verify the fix by re-running the tests locally
+            6. If tests pass, you're done
+
+            **Rules:**
+            - Focus ONLY on making tests pass
+            - Preserve existing functionality
+            - Make surgical, targeted changes
+            - Add comments explaining non-obvious fixes
+            - If the fix requires configuration changes, document them
+
+            **Commands to Run:**
+            ```bash
+            # Reproduce the failure first
+            # Then implement minimal fix
+            # Then verify it works
+            ```
+
+            Start by examining the test failures and working backwards to the root cause.
+
+      - name: Verify fix passes tests
+        id: verify
+        run: |
+          # Re-run the same test command that failed
+          # This is project-specific - adjust as needed
+
+          # For Node.js projects:
+          if [ -f "package.json" ]; then
+            npm test || exit 1
+          fi
+
+          # For Python projects:
+          if [ -f "pytest.ini" ] || [ -f "setup.py" ]; then
+            python -m pytest || exit 1
+          fi
+
+          # For other projects, add your test command here
+          # Make sure it exits with non-zero on failure
+
+          echo "Tests passed after fix!"
+
+      - name: Create autofix branch and PR
+        if: success()
+        uses: actions/github-script@v7
+        env:
+          AUTOFIX_OUTPUT: ${{ steps.autofix.outputs.output-file }}
+        with:
+          script: |
+            const fs = require('fs');
+            const branchName = `codex/autofix-${context.payload.workflow_run.id}`;
+            const baseBranch = context.payload.workflow_run.head_branch;
+
+            // Create branch
+            await exec.exec('git', ['config', 'user.name', 'codex-bot']);
+            await exec.exec('git', ['config', 'user.email', 'codex-bot@users.noreply.github.com']);
+            await exec.exec('git', ['checkout', '-b', branchName]);
+            await exec.exec('git', ['add', '-A']);
+            await exec.exec('git', ['commit', '-m', `🤖 Codex autofix for CI failure in run #${context.payload.workflow_run.id}`]);
+            await exec.exec('git', ['push', 'origin', branchName]);
+
+            // Read Codex output for PR description
+            let fixDetails = 'Automated fix applied by Codex.';
+            try {
+              fixDetails = fs.readFileSync('codex-autofix-output.md', 'utf8');
+            } catch (e) {
+              console.log('Could not read autofix output file');
+            }
+
+            // Create PR
+            const pr = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🤖 Autofix: CI failure in ${context.payload.workflow_run.name}`,
+              head: branchName,
+              base: baseBranch,
+              body: `## 🤖 Automated Fix
+
+            This PR was automatically created by Codex to fix CI failures.
+
+            **Failed Workflow:** [${context.payload.workflow_run.name} #${context.payload.workflow_run.run_number}](${context.payload.workflow_run.html_url})
+            **Failed Commit:** ${context.payload.workflow_run.head_sha.substring(0, 7)}
+
+            ### What Codex Fixed:
+
+            ${fixDetails}
+
+            ### ✅ Verification
+
+            Tests were re-run locally and passed after applying this fix.
+
+            ---
+
+            **⚠️ Important:** Please review this PR carefully before merging. While Codex verified the tests pass, human review ensures the fix is appropriate and doesn't introduce other issues.
+
+            <sub>Automated by [Codex Autofix](https://developers.openai.com/codex/autofix-ci)</sub>
+            `
+            });
+
+            // Add labels
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.data.number,
+              labels: ['codex-autofix', 'automated-pr']
+            });
+
+            console.log(`Created PR #${pr.data.number}: ${pr.data.html_url}`);
+
+      - name: Upload autofix details
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-autofix-run-${{ github.event.workflow_run.id }}
+          path: |
+            codex-autofix-output.md
+          retention-days: 30

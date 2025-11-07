@@ -1,0 +1,107 @@
+name: Auto-Add OpenAI API Key
+
+# Triggers when a new repo is created or when manually dispatched
+on:
+  # Manual trigger to add key to this repo
+  workflow_dispatch:
+
+  # Runs when PR is opened (checks if key exists)
+  pull_request:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-and-add-key:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check if OPENAI_API_KEY exists
+        id: check-key
+        continue-on-error: true
+        run: |
+          # Try to access the secret
+          if [ -z "${{ secrets.OPENAI_API_KEY }}" ]; then
+            echo "key_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ OPENAI_API_KEY secret is missing!"
+          else
+            echo "key_exists=true" >> $GITHUB_OUTPUT
+            echo "✅ OPENAI_API_KEY secret exists"
+          fi
+
+      - name: Comment on PR if key is missing
+        if: github.event_name == 'pull_request' && steps.check-key.outputs.key_exists == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## ⚠️ Missing OPENAI_API_KEY Secret
+
+            This repository is missing the \`OPENAI_API_KEY\` secret required for Codex workflows.
+
+            **To add it:**
+
+            1. **Via GitHub CLI** (easiest):
+               \`\`\`bash
+               echo "YOUR_API_KEY" | gh secret set OPENAI_API_KEY --repo ${{ github.repository }}
+               \`\`\`
+
+            2. **Via GitHub UI**:
+               - Go to [Settings → Secrets → Actions](https://github.com/${{ github.repository }}/settings/secrets/actions)
+               - Click "New repository secret"
+               - Name: \`OPENAI_API_KEY\`
+               - Value: Your OpenAI API key (starts with \`sk-proj-\`)
+               - Click "Add secret"
+
+            3. **Using the bulk script** (for multiple repos):
+               \`\`\`bash
+               ./add-secret-to-all-repos.sh
+               \`\`\`
+
+            Once added, Codex will automatically review PRs and create autofix PRs for CI failures.
+
+            ---
+            <sub>🤖 Automated check by [Auto-Add OpenAI Key workflow](https://github.com/${{ github.repository }}/actions)</sub>
+            `;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+      - name: Create issue if key is missing (on workflow dispatch)
+        if: github.event_name == 'workflow_dispatch' && steps.check-key.outputs.key_exists == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '⚠️ Missing OPENAI_API_KEY secret',
+              body: `## Setup Required
+
+            This repository needs the \`OPENAI_API_KEY\` secret to enable Codex workflows.
+
+            **Quick setup:**
+
+            \`\`\`bash
+            echo "YOUR_OPENAI_API_KEY" | gh secret set OPENAI_API_KEY --repo ${{ github.repository }}
+            \`\`\`
+
+            Or manually add via [Settings → Secrets → Actions](https://github.com/${{ github.repository }}/settings/secrets/actions)
+
+            **What this enables:**
+            - ✅ Automatic PR code reviews
+            - ✅ Auto-fix PRs for failed CI builds
+            - ✅ Security vulnerability detection
+            - ✅ Code quality checks
+
+            See [CODEX-GITHUB-SETUP.md](https://github.com/${{ github.repository }}/blob/master/CODEX-GITHUB-SETUP.md) for details.
+            `,
+              labels: ['setup-required', 'automation']
+            });
+
+            console.log(\`Created issue #\${issue.data.number}\`);
